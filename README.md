@@ -33,3 +33,8 @@ TencentOpenApiSDK
 - 修改分享流程，启用 Webview 权限的 app 只有在无安装 手Q 或者 手Q 版本过旧才会启用 H5 页面分享
 - 修改一些bug（qq 空间分享时打开外部浏览器问题、模拟器里 H5 登陆页面空白问题、分享 H5 页面空白问题等）
 - (only 64bit subspec)`TencentOpenApi_IOS_Bundle.bundle` 去除 `info.plist`、SDK 增加版本号标记
+
+
+#### 3.3.3 (2018.11.28)
+- 未安装手Q的场景下，支持扫码登录
+- bug修复，增强稳定性
