@@ -35,7 +35,7 @@
       {
       "type": "QBooleanElement",
       "key": "kQQAPICtrlFlagQQShareDataline",
-      "title": "数据线",
+      "title": "数据线(我的电脑)",
       "boolValue": 0,
       "controllerAction": "onSwitchCFlag:",
       "object": {"flagValue": 16}
@@ -56,9 +56,52 @@
       "placeholder": "请输入ark json",
       "textValue": ""
       }
-      
-      
       ]
+     },
+     {
+         "elements":
+         [
+             {
+                 "type": "QBooleanElement",
+                 "key": "kQQAPICtrlFlagQQShareEnableMini",
+                 "title": "支持小程序",
+                 "boolValue": 0,
+                 "controllerAction": "onSwitchCFlag:",
+                 "object": {"flagValue": 64}
+             },
+             {
+                 "type": "QEntryElement",
+                 "key": "inputMiniAppid",
+                 "keyboardType": "Default",
+                 "title": "miniAppid:",
+                 "placeholder": "请输入小程序的appid(必填)",
+                 "textValue": "1108318575"
+             },
+             {
+                 "type": "QEntryElement",
+                 "key": "inputMiniPath",
+                 "keyboardType": "Default",
+                 "title": "miniPath:",
+                 "placeholder": "请输入小程序的path(必填)",
+                 "textValue": "pages/index/index"
+             },
+             {
+                 "type": "QEntryElement",
+                 "key": "inputMiniWebUrl",
+                 "keyboardType": "Default",
+                 "title": "miniWebUrl:",
+                 "placeholder": "请输入小程序的webUrl(必填)",
+                 "textValue": "www.qq.com"
+             },
+             {
+                 "type": "QEntryElement",
+                 "key": "inputMiniType",
+                 "keyboardType": "Default",
+                 "title": "miniType:",
+                 "placeholder": "请输入小程序的类型(默认正式版(3)，可选测试版(1)、预览版(4))",
+                 "textValue": "3"
+             }
+         ]
      },
      {
      "elements":
@@ -136,7 +179,7 @@
       {
       "type": "QButtonElement",
       "key": "shareFileBtn",
-      "title": "分享文件(数据线)",
+      "title": "分享文件(需打开数据线)",
       "grouped": true,
       "controllerName": "QQAPIDemoCommonController",
       "sections": [{}],

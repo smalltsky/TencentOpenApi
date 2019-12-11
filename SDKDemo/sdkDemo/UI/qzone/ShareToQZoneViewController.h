@@ -13,6 +13,7 @@ typedef NS_ENUM(NSInteger, ShareToQZoneType)
     kShareToQZoneType_Text,
     kShareToQZoneType_Images,
     kShareToQZoneType_Video,
+    kShareToQZoneType_VideoData,
 };
 
 @interface ShareToQZoneViewController : UIViewController

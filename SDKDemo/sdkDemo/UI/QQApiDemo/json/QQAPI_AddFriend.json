@@ -13,28 +13,28 @@
                 },
                 {
                     "type": "QEntryElement",
-                    "title": "openID",
+                    "title": "openID：",
                     "placeholder": "添加好友openID",
-                    "textValue": "A57597D3BA6F31A0F5D0049A354756FC",
+                    "textValue": "E8FDEB254E7A1A1E8EC66512A1D29AB3",
                     "bind": "textValue:binding_openID"
                 },
                 {
                      "type": "QEntryElement",
-                     "title": "subID",
+                     "title": "subID：",
                      "placeholder": "应用subID",
                      "textValue": "1234",
                      "bind": "textValue:binding_subID"
                 },
                 {
                      "type": "QEntryElement",
-                     "title": "描述",
+                     "title": "描述：",
                      "placeholder": "对添加人说点什么",
                      "textValue": "一起玩游戏吧",
                      "bind": "textValue:binding_description"
                 },
                 {
                      "type": "QEntryElement",
-                     "title": "备注",
+                     "title": "备注：",
                      "placeholder": "好友备注",
                      "textValue": "游戏好友",
                      "bind": "textValue:binding_remark"

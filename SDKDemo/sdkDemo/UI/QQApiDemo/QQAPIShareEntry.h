@@ -8,11 +8,20 @@
 
 #import <Foundation/Foundation.h>
 #import "sdkCall.h"
+#import "TencentOpenAPI/QQApiInterfaceObject.h"
 
 @interface QQApiShareEntry : NSObject
 
 + (UIViewController *)EntryController;
 
 + (UIViewController *)QQqunEntryController;
+
++ (void)handleSendResult:(QQApiSendResultCode)sendResult;
+
+@end
+
+@interface QQApiExtraServiceEntry : NSObject
+
++ (void)StartCallApiExtraService:(NSDictionary *)userInfo;
 
 @end

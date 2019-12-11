@@ -20,8 +20,14 @@
 #import "sdkCall.h"
 #import "NSData+HexAdditions.h"
 
+typedef void (^verifyResultBlock)(NSURLResponse *response, NSDictionary *result);
+
 #if BUILD_QQAPIDEMO
 #import "TencentOpenAPI/QQApiInterface.h"
+#endif
+#if !QQ_OPEN_SDK_LITE
+#import "TencentOpenAPI/QQApiInterface+Private.h"
+#import "TencentOpenAPI/QQApiInterfaceObject+Private.h"
 #endif
 
 #define SDK_TEST_IMAGE_FILE_NAME             @"/test"  //为了测试多种图片类型的分享流程，这里需要在应用目录下放置不同类型图片
@@ -30,10 +36,10 @@
 
 + (UIViewController *)EntryController
 {
-#ifndef QQ_OPEN_SDK_LITE
-    UIViewController *QDialog = [QuickDialogController controllerForRoot:[QRootElement rootForJSON:@"QQAPIDemo" withObject:nil]];
-#else
+#if QQ_OPEN_SDK_LITE
     UIViewController *QDialog = [QuickDialogController controllerForRoot:[QRootElement rootForJSON:@"QQAPIDemo_lite" withObject:nil]];
+#else
+    UIViewController *QDialog = [QuickDialogController controllerForRoot:[QRootElement rootForJSON:@"QQAPIDemo" withObject:nil]];
 #endif
     return QDialog;
 }
@@ -43,10 +49,12 @@
     return QDialog;
 }
 
-+ (BOOL)isRequestFromQQ
-{
-    sdkDemoAppDelegate *appDelegate = [[UIApplication sharedApplication] delegate];
-    return appDelegate.isRequestFromQQ;
++ (BOOL)isRequestFromQQ {
+    id<UIApplicationDelegate> appDelegate = [[UIApplication sharedApplication] delegate];
+    if ([appDelegate isKindOfClass:sdkDemoAppDelegate.class]) {
+        return ((sdkDemoAppDelegate*)appDelegate).isRequestFromQQ;
+    }
+    return NO;
 }
 
 #if BUILD_QQAPIDEMO
@@ -57,8 +65,10 @@
     {
         case EGETMESSAGEFROMQQREQTYPE:      // 手Q -> 第三方应用，请求第三方应用向手Q发送消息
         {
-            sdkDemoAppDelegate *appDelegate = [[UIApplication sharedApplication] delegate];
-            appDelegate.isRequestFromQQ = YES;
+            id<UIApplicationDelegate> appDelegate = [[UIApplication sharedApplication] delegate];
+            if ([appDelegate isKindOfClass:sdkDemoAppDelegate.class]) {
+                ((sdkDemoAppDelegate*)appDelegate).isRequestFromQQ = YES;
+            }
             break;
         }
         default:
@@ -86,7 +96,66 @@
     }
 }
 #endif
++ (void)handleSendResult:(QQApiSendResultCode)sendResult
+{
+    switch (sendResult)
+    {
+        case EQQAPISENDSUCESS:
+            break;
+        default: {
+            UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"发送失败" message:[self showAlert:sendResult] delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
+            [msgbox show];
+            break;
+        }
+    }
+}
 
++ (NSString*)showAlert:(QQApiSendResultCode)sendResult {
+    switch (sendResult) {
+        case EQQAPIAPPNOTREGISTED:
+            return @"App未注册";
+        case EQQAPIMESSAGECONTENTINVALID:
+        case EQQAPIMESSAGECONTENTNULL:
+        case EQQAPIMESSAGETYPEINVALID:
+            return @"发送参数错误";
+        case EQQAPIQQNOTINSTALLED:
+            return @"未安装手Q";
+        case EQQAPIQQNOTSUPPORTAPI:
+            return @"手Q API接口不支持";
+//        case EQQAPISENDFAILD:
+//            return @"发送失败";
+        case EQQAPIQZONENOTSUPPORTTEXT:
+            return @"空间分享不支持QQApiTextObject，请使用QQApiImageArrayForQZoneObject分享";
+        case EQQAPIQZONENOTSUPPORTIMAGE:
+            return @"空间分享不支持QQApiImageObject，请使用QQApiImageArrayForQZoneObject分享";
+        case EQQAPIVERSIONNEEDUPDATE:
+            return @"当前QQ版本太低，需要更新";
+        case ETIMAPIVERSIONNEEDUPDATE:
+            return @"当前TIM版本太低，需要更新";
+        case EQQAPITIMNOTINSTALLED:
+            return @"未安装TIM";
+        case EQQAPITIMNOTSUPPORTAPI:
+            return @"TIM API接口不支持";
+        case EQQAPISHAREDESTUNKNOWN:
+            return @"未指定分享到QQ或TIM";
+        case EQQAPIMESSAGE_MINI_CONTENTNULL:
+            return @"小程序必填参数为空";
+        case EQQAPI_INCOMING_PARAM_ERROR:
+            return @"外部传参错误";
+        case EQQAPI_THIRD_APP_GROUP_ERROR_APP_NOT_AUTHORIZIED:
+            return @"App未获得授权";
+        case EQQAPI_THIRD_APP_GROUP_ERROR_CGI_FAILED:
+            return @"CGI请求失败";
+        case EQQAPI_THIRD_APP_GROUP_ERROR_HAS_BINDED:
+            return @"该组织已经绑定群聊";
+        case EQQAPI_THIRD_APP_GROUP_ERROR_NOT_BINDED:
+            return @"该组织尚未绑定群聊";
+        case EQQAPISENDSUCESS:
+            return nil;
+        default:
+            return [NSString stringWithFormat:@"Error Code:%ld，具体原因见打印", (long)sendResult];
+    }
+}
 @end
 
 
@@ -129,6 +198,8 @@
 @property (nonatomic, strong) ArkObject *arkObject;
 
 @property (nonatomic, assign) BOOL webpFlag;
+
+- (void)doOpenApiExtraService:(NSDictionary *)userInfo;
 
 @end
 
@@ -203,14 +274,6 @@
         [[self currentNavContext] setObject:[NSNumber numberWithUnsignedInt:flagValue] forKey:flagKey];
 
         NSLog(@"%@",[self currentNavContext]);
-        TencentOAuth *tcOAuth=[[TencentOAuth alloc] init];
-        NSMutableDictionary *navDic=[[NSMutableDictionary alloc] initWithDictionary:[self currentNavContext]];
-//        if ([navDic.allKeys containsObject:@"kQQAPICtrlFlagQQShareh5"]) {
-//            if ([[navDic[@"kQQAPICtrlFlagQQShareh5"] stringValue] isEqualToString:@"32"]) {
-//                [tcOAuth openSDKWebViewQQShareEnable];
-//            }
-//        }
-        
     }
 }
 
@@ -239,9 +302,13 @@
 #if BUILD_QQAPIDEMO
 - (void)onShowShareSubMenu:(QElement *)sender
 {
-    QEntryElement *entry  = (QEntryElement *) [self.root elementWithKey:@"inputArkJson"];
-    if(entry.key && entry.textValue){
-        [[self currentNavContext] setObject:entry.textValue forKey:entry.key];
+    NSArray<NSString*>* entryList = @[@"inputArkJson", @"inputMiniAppid", @"inputMiniPath", @"inputMiniWebUrl", @"inputMiniType"];
+    
+    for (NSString* key in entryList) {
+        QEntryElement *entry  = (QEntryElement *) [self.root elementWithKey:key];
+        if(entry.key && entry.textValue){
+            [[self currentNavContext] setObject:entry.textValue forKey:entry.key];
+        }
     }
 }
 
@@ -277,22 +344,12 @@
     [self.view endEditing:YES];
     [self.root fetchValueUsingBindingsIntoObject:self];
     
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *documentsDirectory = [paths objectAtIndex:0];
-    NSString *path = [documentsDirectory stringByAppendingString:SDK_TEST_IMAGE_FILE_NAME];
     NSData *imgData = nil;
-    
-    if ([[NSFileManager defaultManager] fileExistsAtPath:path]){
-        imgData = [NSData dataWithContentsOfFile:path];
-    }else {
-        NSString *imgPath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"test.gif"];
-        imgData = [NSData dataWithContentsOfFile:imgPath];
-    }
-
     NSData *preImgData = imgData;
+    
     if (self.binding_previewImage)
     {
-        NSData *selectedImgData = UIImageJPEGRepresentation(self.binding_previewImage, 0.85);
+        NSData *selectedImgData = UIImageJPEGRepresentation(self.binding_previewImage, 1);
         NSData *selectedPreImgData = UIImageJPEGRepresentation(self.binding_previewImage, 0.20);//对于大于1M的图直接作为缩略图会过大，因此压缩系数要更小
         if (selectedImgData)
         {
@@ -301,6 +358,16 @@
         if (selectedPreImgData)
         {
             preImgData = selectedPreImgData;
+        }
+    } else {
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+        NSString *documentsDirectory = [paths objectAtIndex:0];
+        NSString *path = [documentsDirectory stringByAppendingString:SDK_TEST_IMAGE_FILE_NAME];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:path]){
+            imgData = [NSData dataWithContentsOfFile:path];
+        }else {
+            NSString *imgPath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"test.gif"];
+            imgData = [NSData dataWithContentsOfFile:imgPath];
         }
     }
     
@@ -322,7 +389,37 @@
         ArkObject *arkObj = [ArkObject objectWithData:json qqApiObject:qqobj];
         _arkObject = arkObj;
         req = [SendMessageToQQReq reqWithArkContent:arkObj];
-    }else{
+    }
+    else if ((qqobj.cflag & kQQAPICtrlFlagQQShareEnableMiniProgram) == kQQAPICtrlFlagQQShareEnableMiniProgram) {
+            QQApiMiniProgramObject *miniObj = [QQApiMiniProgramObject new];
+            miniObj.qqApiObject = qqobj;
+        NSDictionary *context = [self currentNavContext];
+        __block NSString *inputMiniAppid = nil;
+        __block NSString *inputMiniPath = nil;
+        __block NSString *inputMiniWebUrl = nil;
+        __block NSString *inputMiniType = nil;
+        [context enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+            if ([obj isKindOfClass:[NSString class]] &&
+                [key isKindOfClass:[NSString class]]) {
+                if ([key isEqualToString:@"inputMiniAppid"]) {
+                    inputMiniAppid = (NSString*)obj;
+                } else if ([key isEqualToString:@"inputMiniPath"]) {
+                    inputMiniPath = (NSString*)obj;
+                } else if ([key isEqualToString:@"inputMiniWebUrl"]) {
+                    inputMiniWebUrl = (NSString*)obj;
+                } else if ([key isEqualToString:@"inputMiniType"]) {
+                    inputMiniType = (NSString*)obj;
+                }
+            }
+        }];
+            miniObj.miniAppID = inputMiniAppid;
+            miniObj.miniPath = inputMiniPath;
+            miniObj.webpageUrl = inputMiniWebUrl;
+            miniObj.miniprogramType = [inputMiniType integerValue];
+            
+            req = [SendMessageToQQReq reqWithMiniContent:miniObj];
+    }
+    else {
         _qqApiObject = qqobj;
         req = [SendMessageToQQReq reqWithContent:qqobj];
     }
@@ -331,6 +428,7 @@
 
 - (NSString *)getDebugArkJson
 {
+    
     NSDictionary *context = [self currentNavContext];
     __block NSString *arkJson = nil;
     [context enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
@@ -341,35 +439,37 @@
             arkJson = (NSString*)obj;
         }
     }];
-    return arkJson;
+    if (arkJson.length > 0) {
+        return arkJson;
+    }
     
-//    NSDictionary *dict = @{@"app" : @"com.tencent.music", @"view" : @"Share", @"meta" : @""};
-//    NSData *objectData = [@"{\"config\":{\"forward\":true,\"type\":\"card\",\"autosize\":true},\"prompt\":\"[应用]音乐\",\"app\":\"com.tencent.music\",\"ver\":\"1.0.1.26\",\"view\":\"Share\",\"meta\":{\"Share\":{\"musicId\":\"4893051\"}},\"desc\":\"音乐\"}" dataUsingEncoding:NSUTF8StringEncoding];
-//    NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:objectData
-//                                                             options:NSJSONReadingMutableContainers // Pass 0 if you don't care about the readability of the generated string
-//                                                               error:nil];
-//    NSError *error;
-//    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:dict
-//                                                       options:NSJSONWritingPrettyPrinted // Pass 0 if you don't care about the readability of the generated string
-//                                                         error:&error];
-//
-//
-//
-//    NSString *jsonString = @"";
-//
-//    if (! jsonData)
-//    {
-//        NSLog(@"Got an error: %@", error);
-//    }else
-//    {
-//        jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-//    }
-//
-//    jsonString = [jsonString stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];  //去除掉首尾的空白字符和换行字符
-//
-//    [jsonString stringByReplacingOccurrencesOfString:@"\n" withString:@""];
-//
-//    return jsonString;
+    NSData *objectData = [@"{\"config\":{\"forward\":true,\"type\":\"card\",\"autosize\":true},\"prompt\":\"[应用]音乐\",\"app\":\"com.tencent.music\",\"ver\":\"1.0.1.26\",\"view\":\"Share\",\"meta\":{\"Share\":{\"musicId\":\"4893051\"}},\"desc\":\"音乐\"}" dataUsingEncoding:NSUTF8StringEncoding];
+    NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:objectData
+                                                             options:NSJSONReadingMutableContainers // Pass 0 if you don't care about the readability of the generated string
+                                                               error:nil];
+    
+    NSError *error;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:dict
+                                                       options:NSJSONWritingPrettyPrinted // Pass 0 if you don't care about the readability of the generated string
+                                                         error:&error];
+
+
+
+    NSString *jsonString = @"";
+
+    if (! jsonData)
+    {
+        NSLog(@"Got an error: %@", error);
+    }else
+    {
+        jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    }
+
+    jsonString = [jsonString stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];  //去除掉首尾的空白字符和换行字符
+
+    [jsonString stringByReplacingOccurrencesOfString:@"\n" withString:@""];
+
+    return jsonString;
 }
 
 ////网络单图分享
@@ -588,9 +688,8 @@
     QQApiSendResultCode ret = [QQApiInterface sendReq:[self getReq:videoObj thisTypeEnableArk:YES arkJson:nil]];
     [self handleSendResult:ret];
 }
-
-- (void)onAddOpenFriend:(QElement *)sender
-{
+#if OPEN_API_ADD_FRIEND
+- (void)onAddOpenFriend:(QElement *)sender {
     [self.view endEditing:YES];
     [self.root fetchValueUsingBindingsIntoObject:self];
     
@@ -603,9 +702,10 @@
     QQApiSendResultCode sent = [QQApiInterface sendReq:req];
     [self handleSendResult:sent];
 }
-
- //计算签名+绑定
-- (void)onGenerateSignatureBind:(QElement *)sender
+#endif
+#if OPEN_API_UNBIND_GROUP
+#pragma mark 第三方app新的解绑群
+- (void)thirdAppUnbindGroup:(QElement *)sender
 {
     [self.view endEditing:YES];
     [self.root fetchValueUsingBindingsIntoObject:self];
@@ -617,6 +717,111 @@
         return;
     }
     
+    NSString* appId = [sdkCall getinstance].oauth.appId;
+    NSDictionary *mDic = @{@"access_token":[sdkCall getinstance].oauth.accessToken,
+                           @"openid":[sdkCall getinstance].oauth.openId,
+                           @"pay_token":[sdkCall getinstance].oauth.passData[@"pay_token"],
+                           @"pfkey":[sdkCall getinstance].oauth.passData[@"pfkey"]
+                           };
+    NSString* url = [NSString stringWithFormat:@"https://openmobile.qq.com/cgi-bin/qunopensdk/unbind?appid=%@&orgid=%@", appId,self.binding_GroupID];
+    url = [self serializeURL:url params:mDic];
+    
+    NSMutableURLRequest* request =[NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]
+                                                          cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
+                                                      timeoutInterval:30];
+    [request setValue:@"TencentConnect" forHTTPHeaderField:@"User-Agent"];
+    [request setHTTPMethod:@"GET"];
+    
+    [NSURLConnection sendAsynchronousRequest:request queue:[[NSOperationQueue alloc]init] completionHandler:^(NSURLResponse * __nullable response, NSData * __nullable data, NSError * __nullable connectionError) {
+        
+        //4.解析服务器返回的数据
+        NSString *str = [[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding];
+        dispatch_async(dispatch_get_main_queue(), ^{
+           [[[UIAlertView alloc] initWithTitle:nil message:str delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil] show];
+        });
+    }];
+}
+#endif //#if OPEN_API_UNBIND_GROUP
+- (NSDictionary *)jasonValueWithStringData:(NSData *)data
+{
+    if (nil == data)
+    {
+        return nil;
+    }
+
+    NSError * error = nil;
+    id jsonDict = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+    if (!jsonDict)
+    {
+        NSLog(@"JSONValue errcode = %ld, msg = %@", (long)error.code, error.description);
+    }
+    return jsonDict;
+}
+
+- (NSString*)serializeURL:(NSString *)baseUrl
+                   params:(NSDictionary *)params {
+    
+    NSURL* parsedURL = [NSURL URLWithString:baseUrl];
+    NSString* queryPrefix = parsedURL.query ? @"&" : @"?";
+    
+    NSMutableArray* pairs = [NSMutableArray array];
+    for (NSString* key in [params keyEnumerator]) {
+        NSString* escaped_value = (__bridge NSString *)CFURLCreateStringByAddingPercentEscapes(
+                                                                                      NULL, /* allocator */
+                                                                                      (CFStringRef)[params objectForKey:key],
+                                                                                      NULL, /* charactersToLeaveUnescaped */
+                                                                                      (CFStringRef)@"!*'();:@&=+$,/?%#[]",
+                                                                                      kCFStringEncodingUTF8);
+        
+        [pairs addObject:[NSString stringWithFormat:@"%@=%@", key, escaped_value]];
+    }
+    NSString* query = [pairs componentsJoinedByString:@"&"];
+    
+    return [NSString stringWithFormat:@"%@%@%@", baseUrl, queryPrefix, query];
+}
+
+#if OPNE_API_BIND_GROUP
+#pragma mark 第三方app新的绑群
+- (void)thirdAppBindGroup:(QElement *)sender
+{
+    [self.view endEditing:YES];
+    [self.root fetchValueUsingBindingsIntoObject:self];
+    
+    if ([[sdkCall getinstance].oauth.openId length] == 0)
+    {
+        UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"需要先登录" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
+        [msgbox show];
+        return;
+    }
+    
+    NSString *displayname = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
+    QQApiThirdAppBindGroupObject *object = [[QQApiThirdAppBindGroupObject alloc] initWithAccessToken:[sdkCall getinstance].oauth.accessToken payToken:[sdkCall getinstance].oauth.passData[@"pay_token"] pfkey:[sdkCall getinstance].oauth.passData[@"pfkey"] unionID:self.binding_GroupID appDisplayName:displayname];
+    object.shareDestType = [self getShareType];
+    SendMessageToQQReq *req = [SendMessageToQQReq reqWithContent:object];
+    
+    [QQApiInterface sendThirdAppBindGroupReq:req resultBlock:^(NSDictionary *result) {
+        NSLog(@"%s, %@", __func__, result);
+        QQApiSendResultCode resultCode = [result[@"QQApiSendResultCode"] integerValue];
+        [self handleSendResult:resultCode];
+    }];
+}
+#endif //#if OPNE_API_BIND_GROUP
+
+#if OPNE_API_GAME_BIND_GROUP
+//计算签名+绑定
+// 绑群
+- (void)onGenerateSignatureBind:(QElement *)sender
+{
+    [self.view endEditing:YES];
+    [self.root fetchValueUsingBindingsIntoObject:self];
+
+    if ([[sdkCall getinstance].oauth.openId length] == 0)
+    {
+        UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"需要先登录" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
+        [msgbox show];
+        return;
+    }
+
     NSString * orgStr = [NSString stringWithFormat:@"%@_%@_%@_%@_%@",
                          [sdkCall getinstance].oauth.openId,
                          [sdkCall getinstance].oauth.appId,
@@ -625,7 +830,7 @@
                          self.binding_GameSectionID];
     NSData * data = [orgStr dataUsingEncoding:NSUTF8StringEncoding];
     NSString * hexStr = [data md5];
-    
+
     NSString * displayname = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
     QQApiGameConsortiumBindingGroupObject *object = [[QQApiGameConsortiumBindingGroupObject alloc] initWithGameConsortium:hexStr
                                                                                                                   unionid:self.binding_GroupID
@@ -635,9 +840,14 @@
     SendMessageToQQReq* req = [SendMessageToQQReq reqWithContent:object];
     QQApiSendResultCode sent = [QQApiInterface sendReq:req];
     [self handleSendResult:sent];
-    
-}
 
+}
+#endif //#if OPNE_API_GAME_BIND_GROUP
+
+- (void)showErrorDialog:(NSString *)errorString {
+    [[[UIAlertView alloc] initWithTitle:nil message:errorString delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil] show];
+}
+#if OPNE_API_GAME_BIND_GROUP
 //绑定
 - (void)onGameConsortiumBindingGroup:(QElement *)sender
 {
@@ -660,12 +870,40 @@
     QQApiSendResultCode sent = [QQApiInterface sendReq:req];
     [self handleSendResult:sent];
 }
-
-- (void)onJoinGroup:(QElement *)sender
+#endif //#if OPNE_API_GAME_BIND_GROUP
+#if OPEN_API_JOIN_GROUP
+#pragma mark 第三方app新的加群
+- (void)thirdAppJoinGroup:(QElement *)sender
 {
     [self.view endEditing:YES];
     [self.root fetchValueUsingBindingsIntoObject:self];
     
+    if ([[sdkCall getinstance].oauth.openId length] == 0)
+    {
+        UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"需要先登录" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
+        [msgbox show];
+        return;
+    }
+    
+    QQApiThirdAppJoinGroupObject *object = [QQApiThirdAppJoinGroupObject objectWithAccessToken:[sdkCall getinstance].oauth.accessToken payToken:[sdkCall getinstance].oauth.passData[@"pay_token"] pfkey:[sdkCall getinstance].oauth.passData[@"pfkey"] unionID:self.binding_GroupID];
+    object.shareDestType = [self getShareType];
+    SendMessageToQQReq *req = [SendMessageToQQReq reqWithContent:object];
+    // 校验是否已经绑群
+    [QQApiInterface sendThirdAppJoinGroupReq:req resultBlock:^(NSDictionary *result) {
+        NSLog(@"%s, %@", __func__, result);
+        QQApiSendResultCode resultCode = [result[@"QQApiSendResultCode"] integerValue];
+        [self handleSendResult:resultCode];
+    }];
+}
+#endif // #ifndef OPEN_API_JOIN_GROUP
+
+#if OPEN_API_JOIN_GROUP_OLD
+// 加群
+- (void)onJoinGroup:(QElement *)sender
+{
+    [self.view endEditing:YES];
+    [self.root fetchValueUsingBindingsIntoObject:self];
+
     if (self.binding_GroupKey && [self.binding_GroupKey length] > 0)
     {
         //ret = [QQApi joinGroup:self.binding_GroupID key:self.binding_GroupKey];
@@ -674,100 +912,21 @@
         SendMessageToQQReq* req = [SendMessageToQQReq reqWithContent:object];
         QQApiSendResultCode sent = [QQApiInterface sendReq:req];
         [self handleSendResult:sent];
-        
+
     }
 }
+#endif //#if OPEN_API_JOIN_GROUP_OLD
 
 - (NSInteger)GetRandomNumber:(NSInteger)start to:(NSInteger)end
 {
     return (NSInteger)(start + (arc4random() % (end - start + 1)));
 }
 
-
 - (void)handleSendResult:(QQApiSendResultCode)sendResult
 {
-    switch (sendResult)
-    {
-        case EQQAPIAPPNOTREGISTED:
-        {
-            UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"App未注册" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
-            [msgbox show];
-            break;
-        }
-        case EQQAPIMESSAGECONTENTINVALID:
-        case EQQAPIMESSAGECONTENTNULL:
-        case EQQAPIMESSAGETYPEINVALID:
-        {
-            UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"发送参数错误" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
-            [msgbox show];
-            break;
-        }
-        case EQQAPIQQNOTINSTALLED:
-        {
-            UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"未安装手Q" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
-            [msgbox show];
-            break;
-        }
-        case EQQAPIQQNOTSUPPORTAPI:
-        {
-            UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"手Q API接口不支持" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
-            [msgbox show];
-            break;
-        }
-        case EQQAPISENDFAILD:
-        {
-            UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"发送失败" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
-            [msgbox show];
-            break;
-        }
-        case EQQAPIQZONENOTSUPPORTTEXT:
-        {
-            UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"空间分享不支持QQApiTextObject，请使用QQApiImageArrayForQZoneObject分享" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
-            [msgbox show];
-            break;
-        }
-        case EQQAPIQZONENOTSUPPORTIMAGE:
-        {
-            UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"空间分享不支持QQApiImageObject，请使用QQApiImageArrayForQZoneObject分享" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
-            [msgbox show];
-            break;
-        }
-        case EQQAPIVERSIONNEEDUPDATE:
-        {
-            UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"当前QQ版本太低，需要更新" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
-            [msgbox show];
-            break;
-        }
-        case ETIMAPIVERSIONNEEDUPDATE:
-        {
-            UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"当前TIM版本太低，需要更新" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
-            [msgbox show];
-            break;
-        }
-        case EQQAPITIMNOTINSTALLED:
-        {
-            UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"未安装TIM" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
-            [msgbox show];
-            break;
-        }
-        case EQQAPITIMNOTSUPPORTAPI:
-        {
-            UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"TIM API接口不支持" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
-            [msgbox show];
-            break;
-        }
-        case EQQAPISHAREDESTUNKNOWN:
-        {
-            UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"未指定分享到QQ或TIM" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
-            [msgbox show];
-        }
-            break;
-        default:
-        {
-            break;
-        }
-    }
+    [QQApiShareEntry handleSendResult:sendResult];
 }
+
 #endif
 
 #pragma mark UIAlertViewDelegate
@@ -787,6 +946,47 @@
         }
         [self handleSendResult:sent];
     }
+}
+
+/*
+ * 目前已经支持的手Q扩展IM能力，即ServiceID值包括：
+ * 18 - 打开聊天会话（手Q版本 >= 8.1.5）
+ * 19 - 打开视频通话（手Q版本 >= 8.1.5）
+ * 20  -打开语音通话（手Q版本 >= 8.1.5）
+ */
+- (void)doOpenApiExtraService:(NSDictionary *)userInfo
+{
+    if ([[sdkCall getinstance].oauth.openId length] == 0) {
+        UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"需要先登录" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
+        [msgbox show];
+        return;
+    }
+    
+    NSString *serviceId = [userInfo objectForKey:@"serviceId"];
+    NSString *openId = [userInfo objectForKey:@"openId"];
+    NSString *toUin = [userInfo objectForKey:@"toUin"];
+    if ([serviceId length] == 0) {
+        UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"需填写有效ServiceID" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
+        [msgbox show];
+        return;
+    }
+    
+    QQApiExtraServiceObject *object = [[QQApiExtraServiceObject alloc] initWithOpenID:self.binding_openID serviceID:serviceId];
+    object.openID = openId;
+    object.toUin = toUin;
+    SendMessageToQQReq *req = [SendMessageToQQReq reqWithContent:object];
+    QQApiSendResultCode sent = [QQApiInterface sendReq:req];
+    [self handleSendResult:sent];
+}
+
+@end
+
+#pragma mark - ExtraService
+@implementation QQApiExtraServiceEntry
++ (void)StartCallApiExtraService:(NSDictionary *)userInfo
+{
+    QQAPIDemoCommonController *contr = [QQAPIDemoCommonController new];
+    [contr doOpenApiExtraService:userInfo];
 }
 
 @end

@@ -44,7 +44,7 @@
 		2C5423DF145ADF2B0026A152 /* QWebViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D811F8BF13EC905B00E3922B /* QWebViewController.m */; };
 		2CE450B3145AE43D00B77D0E /* libQuickDialog.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2C542393145ADEBD0026A152 /* libQuickDialog.a */; };
 		3C3988A41778513D00F17934 /* JSONKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 3C3988A31778513D00F17934 /* JSONKit.h */; };
-		41D778681A53F75400F6E31E /* JSONKit.m in Sources */ = {isa = PBXBuildFile; fileRef = 41D778671A53F75400F6E31E /* JSONKit.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		41D778681A53F75400F6E31E /* JSONKit.m in Sources */ = {isa = PBXBuildFile; fileRef = 41D778671A53F75400F6E31E /* JSONKit.m */; };
 		41D7786B1A53F80000F6E31E /* JSONKit.m in Sources */ = {isa = PBXBuildFile; fileRef = 41D778671A53F75400F6E31E /* JSONKit.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		5C50E1652D781293C5963717 /* themes.json in Resources */ = {isa = PBXBuildFile; fileRef = 5C50E2CE6D8D6B3DD766CCCC /* themes.json */; };
 		5C50E1E06A0557312EB9B187 /* QAppearance.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C50EB0025DCEF8A3740C477 /* QAppearance.h */; };
@@ -418,14 +418,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		253979CD21AE7D15001AA9DD /* Recovered References */ = {
-			isa = PBXGroup;
-			children = (
-				5C50EB0025DCEF8A3740C477 /* QAppearance.h */,
-			);
-			name = "Recovered References";
-			sourceTree = "<group>";
-		};
 		2CE450A8145ADF8000B77D0E /* libQuickDialog */ = {
 			isa = PBXGroup;
 			children = (
@@ -443,7 +435,6 @@
 				D80B0E3D13E052DF00FA85CA /* sample */,
 				D80B0E3613E052DF00FA85CA /* Frameworks */,
 				D80B0E3413E052DF00FA85CA /* Products */,
-				253979CD21AE7D15001AA9DD /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -1064,7 +1055,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.1.1;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = "arm64 armv7 armv7s x86_64 i386";
@@ -1092,7 +1083,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.1.1;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1108,7 +1099,7 @@
 				GCC_PREFIX_HEADER = "sample/quickdialogexample-Prefix.pch";
 				HEADER_SEARCH_PATHS = "$(SOURCE_ROOT)/Build";
 				INFOPLIST_FILE = "sample/quickdialogexample-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = NO;
@@ -1124,7 +1115,7 @@
 				GCC_PREFIX_HEADER = "sample/quickdialogexample-Prefix.pch";
 				HEADER_SEARCH_PATHS = "$(SOURCE_ROOT)/Build";
 				INFOPLIST_FILE = "sample/quickdialogexample-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = NO;

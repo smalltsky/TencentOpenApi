@@ -44,7 +44,8 @@
         NSMutableArray *cellQZone = [NSMutableArray array];
         [cellQZone addObject:[cellInfo info:@"分享纯文本到QZone" target:self Sel:@selector(shareTextToQZone) viewController:nil]];
         [cellQZone addObject:[cellInfo info:@"分享图片到QZone" target:self Sel:@selector(shareImgToQZone) viewController:nil]];
-        [cellQZone addObject:[cellInfo info:@"分享视频到QZone" target:self Sel:@selector(shareVideoToQZone) viewController:nil]];
+        [cellQZone addObject:[cellInfo info:@"URL方式分享视频到QZone" target:self Sel:@selector(shareVideoToQZone) viewController:nil]];
+        [cellQZone addObject:[cellInfo info:@"分享视频数据到QZone" target:self Sel:@selector(shareVideoDataToQZone) viewController:nil]];
         [cellQZone addObject:[cellInfo info:@"获取用户信息" target:self Sel:@selector(getInfo) viewController:nil]];
         [[super sectionName] addObject:@"QZone"];
         [[super sectionRow] addObject:cellQZone];
@@ -145,5 +146,10 @@
     [self.navigationController pushViewController:ctr animated:YES];
 }
 
+- (void)shareVideoDataToQZone
+{
+    ShareToQZoneViewController *ctr = [[ShareToQZoneViewController alloc] initWithShareType:kShareToQZoneType_VideoData];
+    [self.navigationController pushViewController:ctr animated:YES];
+}
 
 @end

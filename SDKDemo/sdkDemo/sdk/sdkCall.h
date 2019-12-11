@@ -36,5 +36,7 @@ FGalleryViewControllerDelegate, TCAPIRequestDelegate>
 @property (nonatomic, retain)NSMutableArray* photos;
 @property (nonatomic, retain)NSMutableArray* thumbPhotos;
 
+@property (nonatomic, assign)BOOL forceWebLogin;
+
 - (void)logout;
 @end

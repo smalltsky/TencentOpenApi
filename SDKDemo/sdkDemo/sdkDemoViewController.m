@@ -7,6 +7,7 @@
 //
 
 #import "sdkDemoViewController.h"
+#import "sdkDemoAppDelegate.h"
 #import "sdkCall.h"
 #import "cellInfo.h"
 #import "sdkDef.h"
@@ -19,6 +20,7 @@
 #import <MediaPlayer/MediaPlayer.h>
 #import <MobileCoreServices/MobileCoreServices.h>
 #import <CommonCrypto/CommonDigest.h>
+#import "FeaturesTableViewController.h"
 
 @implementation sdkDemoNavgationController
 
@@ -75,18 +77,16 @@
 - (NSMutableArray *)getPermissions
 {
     NSMutableArray * g_permissions = [[NSMutableArray alloc] initWithObjects:kOPEN_PERMISSION_GET_USER_INFO,
-                                      kOPEN_PERMISSION_GET_SIMPLE_USER_INFO,
-                                      kOPEN_PERMISSION_ADD_ALBUM,
-                                      kOPEN_PERMISSION_ADD_ONE_BLOG,
-                                      kOPEN_PERMISSION_ADD_SHARE,
-                                      kOPEN_PERMISSION_ADD_TOPIC,
-                                      kOPEN_PERMISSION_CHECK_PAGE_FANS,
-                                      kOPEN_PERMISSION_GET_INFO,
-                                      kOPEN_PERMISSION_GET_OTHER_INFO,
-                                      kOPEN_PERMISSION_LIST_ALBUM,
-                                      kOPEN_PERMISSION_UPLOAD_PIC,
-                                      kOPEN_PERMISSION_GET_VIP_INFO,
-                                      kOPEN_PERMISSION_GET_VIP_RICH_INFO, nil];
+                                kOPEN_PERMISSION_GET_SIMPLE_USER_INFO,
+                                kOPEN_PERMISSION_ADD_ALBUM,
+                                kOPEN_PERMISSION_ADD_TOPIC,
+                                kOPEN_PERMISSION_CHECK_PAGE_FANS,
+                                kOPEN_PERMISSION_GET_INFO,
+                                kOPEN_PERMISSION_GET_OTHER_INFO,
+                                kOPEN_PERMISSION_LIST_ALBUM,
+                                kOPEN_PERMISSION_UPLOAD_PIC,
+                                kOPEN_PERMISSION_GET_VIP_INFO,
+                                kOPEN_PERMISSION_GET_VIP_RICH_INFO, nil];
     
     return [g_permissions autorelease];
 }
@@ -97,6 +97,7 @@
     NSMutableArray *cellLogin = [NSMutableArray arrayWithCapacity:1];
     [cellLogin addObject:[cellInfo info:@"第三方登录" target:self Sel:@selector(login) viewController:nil]];
     [cellLogin addObject:[cellInfo info:@"第三方扫码登录" target:self Sel:@selector(loginWithQRlogin) viewController:nil]];
+    [cellLogin addObject:[cellInfo info:@"第三方扫码登录(强制)" target:self Sel:@selector(forceLoginWithQRLogin) viewController:nil]];
     [cellLogin addObject:[cellInfo info:@"退出账号" target:self Sel:@selector(logout) viewController:nil]];
     [[self sectionName] addObject:@"登录相关"];
     [[self sectionRow] addObject:cellLogin];
@@ -111,10 +112,17 @@
     [cellApiInfo addObject:[cellInfo info:@"QQ分享" target:nil Sel:@selector(pushSelectViewController:) viewController:nil userInfo:[NSNumber numberWithInteger:kApiQQ]]];
     [cellApiInfo addObject:[cellInfo info:@"QQ空间" target:self Sel:@selector(pushSelectViewController:) viewController:nil userInfo:[NSNumber numberWithInteger:kApiQZone]]];
     [cellApiInfo addObject:[cellInfo info:@"UnionID" target:nil Sel:@selector(RequestUnionId) viewController:nil userInfo:nil]];
+#if OPEN_API_GROUP
     [cellApiInfo addObject:[cellInfo info:@"QQ群" target:nil Sel:@selector(pushSelectViewController:) viewController:nil userInfo:[NSNumber numberWithInteger:kApiQQqun]]];
-    
+#endif
+    [cellApiInfo addObject:[cellInfo info:@"QQ支持能力" target:nil Sel:@selector(pushSelectViewController:) viewController:nil userInfo:[NSNumber numberWithInteger:kApiQQFeatures]]];
     [[self sectionName] addObject:@"api"];
     [[self sectionRow] addObject:cellApiInfo];
+    
+    NSMutableArray *appInfoCell = [NSMutableArray arrayWithCapacity:3];
+    [appInfoCell addObject:[cellInfo info:@"当前状态信息" target:nil Sel:@selector(showDemoAppStatus) viewController:nil userInfo:nil]];
+    [[self sectionName] addObject:@"状态信息"];
+    [[self sectionRow] addObject:appInfoCell];
 
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(loginSuccessed) name:kLoginSuccessed object:nil];
@@ -155,6 +163,8 @@
         oauth.authMode = kAuthModeClientSideToken;
         [oauth authorize:[self getPermissions] inSafari:NO];
         loginTime = currentTime;
+    } else {
+        NSLog(@"慢一点，登录太频繁了(2s限频)");
     }
 }
 
@@ -166,11 +176,18 @@
     if ((currentTime - loginTime) > 2)
     {
         TencentOAuth * oauth = [[sdkCall getinstance] oauth];
-        oauth.authMode = kAuthModeClientSideToken;
+        oauth.authMode = kAuthModeClientSideToken;//kAuthModeClientSideToken;//kAuthModeServerSideCode;
         //二维码登录
         [oauth authorizeWithQRlogin:[self getPermissions]];
         loginTime = currentTime;
+    } else {
+        NSLog(@"慢一点，登录太频繁了(2s限频)");
     }
+}
+- (void)forceLoginWithQRLogin {
+    [sdkCall getinstance].forceWebLogin = YES;
+    [self loginWithQRlogin];
+    [sdkCall getinstance].forceWebLogin = NO;
 }
 
 - (void)viewCachedToken
@@ -207,6 +224,8 @@
         case kApiQQqun:
             rootViewController = [[QQApiShareEntry QQqunEntryController] retain];
             break;
+        case kApiQQFeatures:
+            rootViewController = [[FeaturesTableViewController alloc] initWithStyle:UITableViewStyleGrouped];
             break;
         default:
             break;
@@ -214,6 +233,17 @@
     [[self navigationController] pushViewController:rootViewController animated:YES];
     __RELEASE(rootViewController);
 }
+
+- (void)showDemoAppStatus {
+    TencentOAuth *oauth = [[sdkCall getinstance] oauth];
+    NSString *status = [NSString stringWithFormat:@"AppId: %@\n OpenID: %@\n AccessToken: %@", __TencentDemoAppid_,
+                        oauth.openId,
+                        oauth.accessToken];
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"状态信息" message:status preferredStyle:(UIAlertControllerStyleAlert)];
+    [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:(UIAlertActionStyleCancel) handler:nil]];
+    [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:alert animated:YES completion:nil];
+}
+
 
 - (void)RequestUnionId {
     BOOL bRet = [[[sdkCall getinstance] oauth] RequestUnionId];
@@ -271,8 +301,8 @@
     __RELEASE(alertView);
     
     NSMutableArray *cellLogin = self.sectionRow[0];
-    if (cellLogin.count == 3)
-    {
+    cellInfo* lastOne = cellLogin[cellLogin.count - 1];
+    if ([lastOne.title isEqualToString:@"获取个人信息"]) {
         return;
     }
     [cellLogin addObject:[cellInfo info:@"获取个人信息" target:self Sel:@selector(getUserInfo) viewController:nil]];
@@ -280,9 +310,10 @@
 }
 - (void)getUserInfo
 {
-    if (![[sdkCall getinstance].oauth getUserInfo])
-    {
-        NSAssert(NO,@"获取用户信息失败");
+    if (![[sdkCall getinstance].oauth getUserInfo]) {
+        UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"结果" message:@"获取用户信息失败" delegate:nil cancelButtonTitle:@"好的" otherButtonTitles:nil];
+        [alertView show];
+        __RELEASE(alertView);
     }
 }
 - (void)getUserInfoSuccessed:(NSNotification *)notification
@@ -366,6 +397,8 @@
 {
     UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"结果" message:@"已退出登录" delegate:nil cancelButtonTitle:@"好的" otherButtonTitles:nil];
     [alertView show];
+    //退出登录(退出登录后，TecentOAuth失效，需要重新初始化)
+    [sdkCall getinstance].oauth = [[TencentOAuth alloc] initWithAppId:__TencentDemoAppid_ andDelegate:[sdkCall getinstance]];
     __RELEASE(alertView);
 }
 
@@ -420,14 +453,6 @@
     [[cell textLabel] setText:title];
     [[cell textLabel] setTextAlignment:NSTextAlignmentCenter];
     cell.accessoryType = UITableViewCellAccessoryDetailDisclosureButton;
-    
-//    if (0 == indexPath.row
-//        || 1 == indexPath.row)
-//    {
-//        [[cell textLabel] setEnabled:YES];
-//    }
-    
-    // Configure the cell...
     
     return cell;
 }

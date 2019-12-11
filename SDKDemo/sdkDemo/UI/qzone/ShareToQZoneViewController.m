@@ -10,10 +10,7 @@
 #import <TencentOpenAPI/QQApiInterface.h>
 #import <TencentOpenAPI/QQApiInterfaceObject.h>
 #import "QBImagePickerController.h"
-
-#define RGBAColor(r,g,b,a)  [UIColor colorWithRed:r/255.0 green:g/255.0 blue:b/255.0 alpha:a]
-#define RGBColor(r,g,b)     RGBAColor(r,g,b,1.0)
-#define RGBColorC(c)        RGBColor((((int)c) >> 16),((((int)c) >> 8) & 0xff),(((int)c) & 0xff))
+#import "UICommonDefine.h"
 
 @interface ShareToQZoneViewController () <QBImagePickerControllerDelegate>
 {
@@ -53,6 +50,9 @@
             self.navigationItem.title = @"分享视频到空间";
             title = @"选择视频";
             break;
+        case kShareToQZoneType_VideoData:
+            self.navigationItem.title = @"分享视频数据到空间";
+            title = @"选择视频";
             
         default:
             break;
@@ -128,6 +128,13 @@
         }
             break;
             
+        case kShareToQZoneType_VideoData:
+        {
+            imgPicker.allowsMultipleSelection = NO;
+            imgPicker.filterType = QBImagePickerControllerFilterTypeVideos;
+            break;
+        }
+            
         default:
             break;
     }
@@ -141,6 +148,11 @@
 - (void)imagePickerController:(QBImagePickerController *)imagePickerController didSelectAsset:(ALAsset *)asset
 {
     NSURL *url = [asset valueForProperty:ALAssetPropertyAssetURL];
+    if (_type == kShareToQZoneType_VideoData && asset.defaultRepresentation.size > 20 * 1024 * 1024) {
+        UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"分享视频数据大小不超过20M，请选择其它小视频哦~" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil];
+        [msgbox show];
+        return;
+    }
     _videoAssetForQZone = url;
     [imagePickerController dismissViewControllerAnimated:YES completion:nil];
 }
@@ -242,6 +254,32 @@
             [self handleSendResult:sent];
         }
             break;
+            
+        case kShareToQZoneType_VideoData:
+        {
+            if (!_videoAssetForQZone) {
+                UIAlertView *msgbox = [[UIAlertView alloc] initWithTitle:@"Error" message:@"请先选择视频" delegate:nil cancelButtonTitle:@"取消" otherButtonTitles:nil];
+                [msgbox show];
+                return;
+            }
+            
+            ALAssetsLibrary * assetLibrary = [[ALAssetsLibrary alloc] init];
+            [assetLibrary assetForURL:_videoAssetForQZone resultBlock:^(ALAsset *asset) {
+                ALAssetRepresentation* representation = [asset defaultRepresentation];
+                uint8_t* buffer = (uint8_t*)malloc(representation.size);
+                [representation getBytes:buffer fromOffset:0 length:representation.size error:nil];
+                
+                NSData* data = [NSData dataWithBytesNoCopy:buffer length:representation.size freeWhenDone:YES];
+                QQApiVideoForQZoneObject *video = [QQApiVideoForQZoneObject objectWithVideoData:data title:text extMap:dict];
+                video.shareDestType = [self getShareType];
+                SendMessageToQQReq *req = [SendMessageToQQReq reqWithContent:video];
+                QQApiSendResultCode sent = [QQApiInterface SendReqToQZone:req];
+                [self handleSendResult:sent];
+            } failureBlock:^(NSError *error) {
+                
+            }];
+            break;
+        }
             
         default:
             break;

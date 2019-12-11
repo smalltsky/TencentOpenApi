@@ -16,6 +16,7 @@ typedef enum
     kApiQQ,
     kApiQuick,
     kApiQQqun,
+    kApiQQFeatures
 }apiType;
 
 @interface cellInfo : NSObject

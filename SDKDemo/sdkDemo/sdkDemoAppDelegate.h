@@ -13,7 +13,6 @@
 
 @property (strong, nonatomic) UIWindow *window;
 @property (nonatomic, retain) sdkDemoViewController *viewController;
-
 @property (nonatomic, assign) BOOL isRequestFromQQ;
 
 @end

@@ -9,13 +9,12 @@
 #import "sdkDemoAppDelegate.h"
 #import <TencentOpenAPI/TencentOAuth.h>
 #import "sdkCall.h"
+#import <Bugly/Bugly.h>
 
 #if BUILD_QQAPIDEMO
 #import "TencentOpenAPI/QQApiInterface.h"
 #import "QQApiShareEntry.h"
 #endif
-
-#import <Bugly/Bugly.h>
 
 #define OSVersion ([[[UIDevice currentDevice] systemVersion] floatValue])
 
@@ -57,6 +56,8 @@
     [[self window] makeKeyAndVisible];
     self.isRequestFromQQ = NO;
     
+    [self performSelector:@selector(showChangeAppIDAlert) withObject:nil afterDelay:0];
+    
     return YES;
 }
 
@@ -91,8 +92,12 @@
 
 - (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation
 {
+//    NSString *strUrl = @"http://dajdklajdka?";
+//    url = [NSURL URLWithString:strUrl];
 
+#if BUILD_QQAPIDEMO
     [QQApiInterface handleOpenURL:url delegate:(id<QQApiInterfaceDelegate>)[QQApiShareEntry class]];
+#endif
     
     if (YES == [TencentOAuth CanHandleOpenURL:url])
     {
@@ -105,13 +110,57 @@
 
 - (BOOL)application:(UIApplication *)application handleOpenURL:(NSURL *)url
 {
+#if BUILD_QQAPIDEMO
     [QQApiInterface handleOpenURL:url delegate:(id<QQApiInterfaceDelegate>)[QQApiShareEntry class]];
+#endif
     
     if (YES == [TencentOAuth CanHandleOpenURL:url])
     {
         return [TencentOAuth HandleOpenURL:url];
     }
     return YES;
+}
+
+- (BOOL)application:(UIApplication *)application continueUserActivity:(NSUserActivity *)userActivity restorationHandler:(void(^)(NSArray<id<UIUserActivityRestoring>> * __nullable restorableObjects))restorationHandler NS_AVAILABLE_IOS(8_0);
+{
+    // Demo处理手Q UniversalLink回调的示例代码
+    if([userActivity.activityType isEqualToString:NSUserActivityTypeBrowsingWeb]) {
+        NSURL *url = userActivity.webpageURL;
+        if(url && [TencentOAuth CanHandleUniversalLink:url]) {
+            UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"UniversalLink" message:url.description delegate:nil cancelButtonTitle:@"ok" otherButtonTitles:nil, nil];
+            [alertView show];
+        #if BUILD_QQAPIDEMO
+            // 兼容[QQApiInterface handleOpenURL:delegate:]的接口回调能力
+            [QQApiInterface handleOpenUniversallink:url delegate:(id<QQApiInterfaceDelegate>)[QQApiShareEntry class]];
+        #endif
+            return [TencentOAuth HandleUniversalLink:url];
+        }
+    }
+    return YES;
+}
+
+#pragma mark -
+
+- (void)showChangeAppIDAlert {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"提示" message:@"设置AppId" preferredStyle:(UIAlertControllerStyleAlert)];
+    [alert addAction:[UIAlertAction actionWithTitle:@"设置" style:(UIAlertActionStyleDefault) handler:^(UIAlertAction * _Nonnull action) {
+        NSString *appid = alert.textFields.firstObject.text;
+        
+        [[NSUserDefaults standardUserDefaults] setObject:appid forKey:TENCENT_APPID_USERDEFAULTS_KEY];
+        [[NSUserDefaults standardUserDefaults] synchronize];
+        
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"提示" message:@"新AppId重新启动应用后生效" preferredStyle:(UIAlertControllerStyleAlert)];
+        [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:(UIAlertActionStyleCancel) handler:nil]];
+        [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:alert animated:YES completion:nil];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:(UIAlertActionStyleCancel) handler:nil]];
+    
+    [alert addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+        textField.clearButtonMode = UITextFieldViewModeAlways;
+        textField.placeholder = @"输入AppId";
+        textField.text = __TencentDemoAppid_;
+    }];
+    [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:alert animated:YES completion:nil];
 }
 
 @end

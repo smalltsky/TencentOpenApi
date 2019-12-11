@@ -35,10 +35,71 @@
                 {
                     "type": "QBooleanElement",
                     "key": "kQQAPICtrlFlagQQShareDataline",
-                    "title": "数据线",
+                    "title": "数据线(我的电脑)",
                     "boolValue": 0,
                     "controllerAction": "onSwitchCFlag:",
                     "object": {"flagValue": 16}
+                },
+                {
+                    "type": "QBooleanElement",
+                    "key": "kQQAPICtrlFlagQQShareEnableArk",
+                    "title": "支持ARK",
+                    "boolValue": 0,
+                    "controllerAction": "onSwitchCFlag:",
+                    "object": {"flagValue": 32}
+                },
+                {
+                    "type": "QEntryElement",
+                    "key": "inputArkJson",
+                    "keyboardType": "Default",
+                    "title": "json:",
+                    "placeholder": "请输入ark json",
+                    "textValue": ""
+                }
+            ]
+        },
+        {
+            "elements":
+            [
+                {
+                    "type": "QBooleanElement",
+                    "key": "kQQAPICtrlFlagQQShareEnableMini",
+                    "title": "支持小程序",
+                    "boolValue": 0,
+                    "controllerAction": "onSwitchCFlag:",
+                    "object": {"flagValue": 64}
+                },
+                {
+                    "type": "QEntryElement",
+                    "key": "inputMiniAppid",
+                    "keyboardType": "Default",
+                    "title": "miniAppid:",
+                    "placeholder": "请输入小程序的appid(必填)",
+                    "textValue": "1108318575"
+                },
+                {
+                    "type": "QEntryElement",
+                    "key": "inputMiniPath",
+                    "keyboardType": "Default",
+                    "title": "miniPath:",
+                    "placeholder": "请输入小程序的path(必填)",
+                    "textValue": "pages/index/index"
+                },
+                {
+                    "type": "QEntryElement",
+                    "key": "inputMiniWebUrl",
+                    "keyboardType": "Default",
+                    "title": "miniWebUrl:",
+                    "placeholder": "请输入小程序的webUrl(必填)",
+                    "textValue": "www.qq.com"
+                },
+                {
+                    "type": "QEntryElement",
+                    "key": "inputMiniType",
+                    "keyboardType": "Default",
+                    "title": "miniType:",
+                    "placeholder": "请输入小程序的类型(默认正式版(3)，可选测试版(1)、预览版(4))",
+                    "textValue": "3"
                 }
             ]
         },
@@ -52,25 +113,28 @@
                     "grouped": true,
                     "controllerName": "QQAPIDemoCommonController",
                     "sections": [{}],
-                    "object": {"jsonConfig": "QQAPI_ShareText"}
+                    "object": {"jsonConfig": "QQAPI_ShareText"},
+                    "controllerAction": "onShowShareSubMenu:"
                 },
                 {
                     "type": "QButtonElement",
                     "key": "shareImageBtn",
-                    "title": "分享图片消息",
+                    "title": "分享图片(本地)消息",
                     "grouped": true,
                     "controllerName": "QQAPIDemoCommonController",
                     "sections": [{}],
-                    "object": {"jsonConfig": "QQAPI_ShareImage"}
+                    "object": {"jsonConfig": "QQAPI_ShareImage"},
+                    "controllerAction": "onShowShareSubMenu:"
                 },
                 {
                     "type": "QButtonElement",
                     "key": "shareImageBtn",
-                    "title": "分享图片消息(多图)",
+                    "title": "分享多图(请在上面选择-收藏)",
                     "grouped": true,
                     "controllerName": "QQAPIDemoCommonController",
                     "sections": [{}],
-                    "object": {"jsonConfig": "QQAPI_ShareMutileImage"}
+                    "object": {"jsonConfig": "QQAPI_ShareMutileImage"},
+                    "controllerAction": "onShowShareSubMenu:"
                 },
                 {
                     "type": "QButtonElement",
@@ -79,7 +143,8 @@
                     "grouped": true,
                     "controllerName": "QQAPIDemoCommonController",
                     "sections": [{}],
-                    "object": {"jsonConfig": "QQAPI_ShareNewsLocal"}
+                    "object": {"jsonConfig": "QQAPI_ShareNewsLocal"},
+                    "controllerAction": "onShowShareSubMenu:"
                 },
                 {
                     "type": "QButtonElement",
@@ -88,7 +153,8 @@
                     "grouped": true,
                     "controllerName": "QQAPIDemoCommonController",
                     "sections": [{}],
-                    "object": {"jsonConfig": "QQAPI_ShareNewsWeb"}
+                    "object": {"jsonConfig": "QQAPI_ShareNewsWeb"},
+                    "controllerAction": "onShowShareSubMenu:"
                 },
                 {
                     "type": "QButtonElement",
@@ -97,7 +163,8 @@
                     "grouped": true,
                     "controllerName": "QQAPIDemoCommonController",
                     "sections": [{}],
-                    "object": {"jsonConfig": "QQAPI_ShareAudio"}
+                    "object": {"jsonConfig": "QQAPI_ShareAudio"},
+                    "controllerAction": "onShowShareSubMenu:"
                 },
                 {
                     "type": "QButtonElement",
@@ -106,16 +173,18 @@
                     "grouped": true,
                     "controllerName": "QQAPIDemoCommonController",
                     "sections": [{}],
-                    "object": {"jsonConfig": "QQAPI_ShareVideo"}
+                    "object": {"jsonConfig": "QQAPI_ShareVideo"},
+                    "controllerAction": "onShowShareSubMenu:"
                 },
                 {
                     "type": "QButtonElement",
                     "key": "shareFileBtn",
-                    "title": "分享文件消息",
+                    "title": "分享文件(需打开数据线)",
                     "grouped": true,
                     "controllerName": "QQAPIDemoCommonController",
                     "sections": [{}],
-                    "object": {"jsonConfig": "QQAPI_ShareFile"}
+                    "object": {"jsonConfig": "QQAPI_ShareFile"},
+                    "controllerAction": "onShowShareSubMenu:"
                 }
             ]
         }

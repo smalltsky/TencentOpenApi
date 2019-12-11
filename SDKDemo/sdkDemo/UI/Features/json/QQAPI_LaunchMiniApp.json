@@ -1,0 +1,49 @@
+{
+    "title": "唤起QQ小程序",
+    "grouped": true,
+    "controllerName": "LaunchMiniAppViewController",
+    "sections":
+    [
+        {
+            "elements":
+            [
+                {
+                    "type":"QEntryElement",
+                    "title":"miniAppid:",
+                    "placeholder": "请输入小程序的appid(必填)",
+                    "textValue": "1108108864",
+                    "bind":"textValue:binding_miniAppId"
+                },
+                {
+                    "type": "QEntryElement",
+                    "key": "inputMiniPath",
+                    "keyboardType": "Default",
+                    "title": "miniPath:",
+                    "placeholder": "请输入小程序的path(必填)",
+                    "textValue": "pages/tabBar/index/index",
+                    "bind":"textValue:binding_miniPath"
+                },
+                {
+                    "type": "QEntryElement",
+                    "key": "inputMiniType",
+                    "keyboardType": "Default",
+                    "title": "miniType:",
+                    "placeholder": "请输入小程序的类型(默认正式版(3)，可选测试版(1)、开发版(0))",
+                    "textValue": "3",
+                    "bind":"textValue:binding_miniType"
+                }
+            ]
+        },
+        {
+            "elements":
+            [
+                {
+                    "type": "QButtonElement",
+                    "key": "shareBtn",
+                    "title": "分享",
+                    "controllerAction": "onLaunchMiniApp:"
+                }
+            ]
+        }
+    ]
+}

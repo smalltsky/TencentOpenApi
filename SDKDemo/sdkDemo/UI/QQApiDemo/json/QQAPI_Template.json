@@ -53,7 +53,7 @@
                     "keyboardType": "Default",
                     "title": "preview image url",
                     "placeholder": "填入分享预览图的URL链接",
-                    "textValue": "http://cdni.wired.co.uk/620x413/k_n/NewsForecast%20copy_620x413.jpg",
+                    "textValue": "http://pub.idqqimg.com/pc/misc/files/20190221/ba25f9470c5c4263b81c1e27c6039b04.png",
                     "bind": "textValue:binding_previewImageUrl"
                 },
                 {

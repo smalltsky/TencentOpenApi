@@ -76,7 +76,9 @@
                                usingBlock:^(ALAsset *result, NSUInteger index, BOOL *stop) {
                                    if (result) {
                                        UIImage *thumbnailImage = [UIImage imageWithCGImage:[result thumbnail]];
-                                       [thumbnailImages addObject:thumbnailImage];
+                                       if (thumbnailImage) {
+                                           [thumbnailImages addObject:thumbnailImage];
+                                       }
                                    }
                                }];
     self.thumbnailImages = [thumbnailImages copy];

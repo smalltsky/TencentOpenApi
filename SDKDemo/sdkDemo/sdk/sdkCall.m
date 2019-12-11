@@ -26,27 +26,28 @@ static sdkCall *g_instance = nil;
 {
     @synchronized(self)
     {
-        //故意不写成正常的单例 用来全面的验证sdk没有问题
-        if (g_instance)
-        {
-            NSString *accesstoken = [g_instance oauth].accessToken;
-            NSString *openID = [g_instance oauth].openId;
-            NSDate *expirationDate = [g_instance oauth].expirationDate;
-            NSDictionary *passData = [g_instance oauth].passData;
-            NSString *unionid = [g_instance oauth].unionid;
+        //故意不写成正常的单例 用来全面的验证sdk没有问题 //为什么要这样啊，匪夷所思啊
+        if (g_instance) {
+//            NSString *accesstoken = [g_instance oauth].accessToken;
+//            NSString *openID = [g_instance oauth].openId;
+//            NSDate *expirationDate = [g_instance oauth].expirationDate;
+//            NSDictionary *passData = [g_instance oauth].passData;
+//            NSString *unionid = [g_instance oauth].unionid;
+//            TencentAuthMode authMode = [g_instance oauth].authMode;
             
-            TencentAuthMode authMode = [g_instance oauth].authMode;
-            g_instance = [[sdkCall alloc] init];
-            [g_instance oauth].accessToken = accesstoken;
-            [g_instance oauth].openId = openID;
-            [g_instance oauth].expirationDate = expirationDate;
-            [g_instance oauth].passData = passData;
-            [g_instance oauth].authMode = authMode;
-            [g_instance oauth].unionid = unionid;
+//            TencentOAuth* newOauth = [[TencentOAuth alloc] initWithAppId:__TencentDemoAppid_ andDelegate:g_instance];
+//            g_instance.oauth = newOauth;
+//            [g_instance oauth].accessToken = accesstoken;
+//            [g_instance oauth].openId = openID;
+//            [g_instance oauth].expirationDate = expirationDate;
+//            [g_instance oauth].passData = passData;
+//            [g_instance oauth].authMode = authMode;
+//            [g_instance oauth].unionid = unionid;
         }
         else
         {
             g_instance = [[sdkCall alloc] init];
+            g_instance.forceWebLogin = NO;
         }
 
         [g_instance setPhotos:[NSMutableArray arrayWithCapacity:1]];
@@ -101,7 +102,12 @@ static sdkCall *g_instance = nil;
 
 - (void)tencentDidNotLogin:(BOOL)cancelled
 {
-    [[NSNotificationCenter defaultCenter] postNotificationName:kLoginCancelled object:self];
+    if (cancelled) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:kLoginCancelled object:self];
+    } else {
+        [[NSNotificationCenter defaultCenter] postNotificationName:kLoginFailed object:self];
+    }
+   
 }
 
 - (void)tencentDidNotNetWork
@@ -143,6 +149,9 @@ static sdkCall *g_instance = nil;
 {
 }
 
+- (BOOL)forceWebLogin {
+    return _forceWebLogin;
+}
 
 - (void)getUserInfoResponse:(APIResponse*) response
 {

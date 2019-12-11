@@ -8,7 +8,9 @@
 
 #import "QBImagePickerController.h"
 #import <AssetsLibrary/AssetsLibrary.h>
-
+#import <AssetsLibrary/ALAsset.h>
+#import <CoreMedia/CoreMedia.h>
+#import <AVFoundation/AVFoundation.h>
 // Views
 #import "QBImagePickerGroupCell.h"
 #import "QBAssetsCollectionViewLayout.h"
@@ -130,7 +132,6 @@ ALAssetsFilter * ALAssetsFilterFromQBImagePickerControllerFilterType(QBImagePick
         [self.navigationItem setRightBarButtonItem:nil animated:NO];
     }
 }
-
 
 #pragma mark - Actions
 

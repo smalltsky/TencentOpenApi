@@ -8,12 +8,14 @@
 #warning "This project uses features only available in iOS SDK 4.0 and later."
 #endif
 
-//#define QQ_OPEN_SDK_LITE
-
 #ifdef __OBJC__
+    #import "../common/PublicDefine.h"
+
     #import <UIKit/UIKit.h>
     #import <Foundation/Foundation.h>
     #import "libs/QuickDialog/quickdialog/QuickDialog.h"
+    #import "util/UIViewAdditions.h"
+
 #endif
 
 #define __TencentApiSdk_For_TencentApp_ 0
@@ -44,9 +46,7 @@
     #define __SUPER_DEALLOC    [super dealloc];
 #endif 
 
-#define __TencentDemoAppid_  ([[NSBundle mainBundle] objectForInfoDictionaryKey:@"TencentAppID"])
+#define TENCENT_APPID_USERDEFAULTS_KEY @"TencentAppID"
+#define __TencentDemoAppid_  ([[NSUserDefaults standardUserDefaults] stringForKey:TENCENT_APPID_USERDEFAULTS_KEY] ?: ([[NSBundle mainBundle] objectForInfoDictionaryKey:@"TencentAppID"]))
 
 #define PreDefM_APPID __TencentDemoAppid_
-
-//#define QQ_OPEN_SDK_LITE
-
